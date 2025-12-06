@@ -1,0 +1,26 @@
+{
+  "name": "smart-mt-patient",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "智慧医疗患者端（移动端）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0",
+    "pinia": "^2.1.7",
+    "axios": "^1.6.7",
+    "naive-ui": "^2.38.1",
+    "vfonts": "^0.0.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.5",
+    "vue-tsc": "^2.0.6"
+  }
+}

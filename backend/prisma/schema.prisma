@@ -1,0 +1,480 @@
+// Prisma Schema for SmartMT Medical System
+// 智能医疗管理系统数据库模型
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 用户系统 ====================
+
+/// 系统管理员
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  nickname  String?  @db.VarChar(50)
+  avatar    String?  @db.VarChar(255)
+  role      String   @default("admin") @db.VarChar(20)
+  status    Int      @default(1) // 1:正常 0:禁用
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+/// 患者/用户
+model Patient {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique @db.VarChar(50)
+  password      String   @db.VarChar(255)
+  name          String   @db.VarChar(50)
+  gender        String?  @db.VarChar(10) // male/female
+  phone         String?  @db.VarChar(20)
+  idCard        String?  @map("id_card") @db.VarChar(20) // 身份证号
+  age           Int?
+  avatar        String?  @db.VarChar(255)
+  medicalCardNo String?  @unique @map("medical_card_no") @db.VarChar(50) // 就诊卡号
+  balance       Decimal  @default(0) @db.Decimal(10, 2) // 账户余额
+  status        Int      @default(1)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  prescriptions  Prescription[]
+  examinations   Examination[]
+  payments       Payment[]
+  recharges      Recharge[]
+  messages       Message[]
+  diagnosisGuides DiagnosisGuide[]
+
+  @@map("patients")
+}
+
+/// 医生
+model Doctor {
+  id           Int      @id @default(autoincrement())
+  employeeNo   String   @unique @map("employee_no") @db.VarChar(50) // 工号
+  password     String   @db.VarChar(255)
+  name         String   @db.VarChar(50)
+  gender       String?  @db.VarChar(10)
+  phone        String?  @db.VarChar(20)
+  avatar       String?  @db.VarChar(255)
+  title        String?  @db.VarChar(50) // 职称：主任医师、副主任医师等
+  specialty    String?  @db.VarChar(100) // 专长
+  introduction String?  @db.Text // 简介
+  status       Int      @default(1)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  departmentId Int        @map("department_id")
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  schedules      Schedule[]
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  prescriptions  Prescription[]
+  examinations   Examination[]
+
+  @@map("doctors")
+}
+
+// ==================== 科室管理 ====================
+
+/// 科室分类
+model DepartmentCategory {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(50)
+  sort        Int          @default(0)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  departments Department[]
+
+  @@map("department_categories")
+}
+
+/// 科室信息
+model Department {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(50) // 科室编码
+  name        String   @db.VarChar(100)
+  location    String?  @db.VarChar(200) // 位置
+  phone       String?  @db.VarChar(20)
+  image       String?  @db.VarChar(255)
+  description String?  @db.Text
+  status      Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  categoryId Int                @map("category_id")
+  category   DepartmentCategory @relation(fields: [categoryId], references: [id])
+
+  doctors      Doctor[]
+  schedules    Schedule[]
+  appointments Appointment[]
+
+  @@map("departments")
+}
+
+// ==================== 排班与挂号 ====================
+
+/// 排班信息
+model Schedule {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date // 排班日期
+  timeSlot    String   @map("time_slot") @db.VarChar(50) // 时间段：08:00-12:00
+  maxPatients Int      @default(20) @map("max_patients") // 最大挂号数
+  bookedCount Int      @default(0) @map("booked_count") // 已挂号数
+  fee         Decimal  @db.Decimal(10, 2) // 挂号费
+  status      Int      @default(1) // 1:可预约 0:停诊
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  doctorId     Int        @map("doctor_id")
+  doctor       Doctor     @relation(fields: [doctorId], references: [id])
+  departmentId Int        @map("department_id")
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  appointments Appointment[]
+
+  @@unique([doctorId, date, timeSlot])
+  @@map("schedules")
+}
+
+/// 挂号/预约
+model Appointment {
+  id            Int      @id @default(autoincrement())
+  appointmentNo String   @unique @map("appointment_no") @db.VarChar(50) // 挂号单号
+  date          DateTime @db.Date
+  timeSlot      String   @map("time_slot") @db.VarChar(50)
+  fee           Decimal  @db.Decimal(10, 2)
+  status        Int      @default(0) // 0:待就诊 1:已就诊 2:已取消
+  queueNo       Int?     @map("queue_no") // 排队号
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  patientId    Int        @map("patient_id")
+  patient      Patient    @relation(fields: [patientId], references: [id])
+  doctorId     Int        @map("doctor_id")
+  doctor       Doctor     @relation(fields: [doctorId], references: [id])
+  departmentId Int        @map("department_id")
+  department   Department @relation(fields: [departmentId], references: [id])
+  scheduleId   Int        @map("schedule_id")
+  schedule     Schedule   @relation(fields: [scheduleId], references: [id])
+
+  medicalRecord MedicalRecord?
+  examinations  Examination[]
+
+  @@map("appointments")
+}
+
+// ==================== 诊疗记录 ====================
+
+/// 病历信息
+model MedicalRecord {
+  id             Int      @id @default(autoincrement())
+  recordNo       String   @unique @map("record_no") @db.VarChar(50) // 病历号
+  chiefComplaint String   @map("chief_complaint") @db.Text // 主诉
+  presentIllness String?  @map("present_illness") @db.Text // 现病史
+  diagnosis      String   @db.Text // 诊断结果
+  suggestion     String?  @db.Text // 医嘱/建议
+  attachments    String?  @db.Text // 附件（检查报告等）JSON
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  patientId     Int         @map("patient_id")
+  patient       Patient     @relation(fields: [patientId], references: [id])
+  doctorId      Int         @map("doctor_id")
+  doctor        Doctor      @relation(fields: [doctorId], references: [id])
+  appointmentId Int         @unique @map("appointment_id")
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+
+  prescriptions Prescription[]
+
+  @@map("medical_records")
+}
+
+/// 处方信息
+model Prescription {
+  id             Int      @id @default(autoincrement())
+  prescriptionNo String   @unique @map("prescription_no") @db.VarChar(50) // 处方单号
+  totalAmount    Decimal  @map("total_amount") @db.Decimal(10, 2) // 总金额
+  advice         String?  @db.Text // 用药医嘱
+  status         Int      @default(0) // 0:待缴费 1:已缴费 2:已取药
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  patientId       Int           @map("patient_id")
+  patient         Patient       @relation(fields: [patientId], references: [id])
+  doctorId        Int           @map("doctor_id")
+  doctor          Doctor        @relation(fields: [doctorId], references: [id])
+  medicalRecordId Int           @map("medical_record_id")
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
+
+  items    PrescriptionItem[]
+  payments Payment[]
+
+  @@map("prescriptions")
+}
+
+/// 处方明细
+model PrescriptionItem {
+  id        Int     @id @default(autoincrement())
+  quantity  Int // 数量
+  dosage    String? @db.VarChar(100) // 用法用量
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  // 关联
+  prescriptionId Int          @map("prescription_id")
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  medicineId     Int          @map("medicine_id")
+  medicine       Medicine     @relation(fields: [medicineId], references: [id])
+
+  @@map("prescription_items")
+}
+
+// ==================== 药品管理 ====================
+
+/// 药品分类
+model MedicineCategory {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique @db.VarChar(50)
+  sort      Int        @default(0)
+  createdAt DateTime   @default(now()) @map("created_at")
+  medicines Medicine[]
+
+  @@map("medicine_categories")
+}
+
+/// 药品信息
+model Medicine {
+  id             Int       @id @default(autoincrement())
+  code           String    @unique @db.VarChar(50) // 药品编码
+  name           String    @db.VarChar(100)
+  dosageForm     String?   @map("dosage_form") @db.VarChar(50) // 剂型
+  specification  String?   @db.VarChar(100) // 规格
+  manufacturer   String?   @db.VarChar(200) // 生产厂家
+  price          Decimal   @db.Decimal(10, 2)
+  stock          Int       @default(0)
+  unit           String?   @db.VarChar(20) // 单位：盒、瓶等
+  image          String?   @db.VarChar(255)
+  description    String?   @db.Text
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  status         Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // 关联
+  categoryId Int              @map("category_id")
+  category   MedicineCategory @relation(fields: [categoryId], references: [id])
+
+  prescriptionItems PrescriptionItem[]
+
+  @@map("medicines")
+}
+
+// ==================== 体检管理 ====================
+
+/// 体检项目
+model ExamItem {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  price       Decimal  @db.Decimal(10, 2)
+  description String?  @db.Text
+  status      Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  examinations ExaminationItem[]
+
+  @@map("exam_items")
+}
+
+/// 体检预约
+model Examination {
+  id          Int       @id @default(autoincrement())
+  examNo      String    @unique @map("exam_no") @db.VarChar(50) // 体检单号
+  examDate    DateTime  @map("exam_date") @db.Date
+  totalAmount Decimal   @map("total_amount") @db.Decimal(10, 2)
+  status      Int       @default(0) // 0:待检 1:进行中 2:已完成
+  report      String?   @db.Text // 体检报告（JSON或富文本）
+  conclusion  String?   @db.Text // 诊断结论
+  reportTime  DateTime? @map("report_time")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // 关联
+  patientId     Int          @map("patient_id")
+  patient       Patient      @relation(fields: [patientId], references: [id])
+  doctorId      Int?         @map("doctor_id")
+  doctor        Doctor?      @relation(fields: [doctorId], references: [id])
+  appointmentId Int?         @map("appointment_id")
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  items    ExaminationItem[]
+  payments Payment[]
+
+  @@map("examinations")
+}
+
+/// 体检项目明细
+model ExaminationItem {
+  id        Int       @id @default(autoincrement())
+  result    String?   @db.Text // 检查结果
+  status    Int       @default(0) // 0:待检 1:已检
+  checkedAt DateTime? @map("checked_at")
+
+  // 关联
+  examinationId Int         @map("examination_id")
+  examination   Examination @relation(fields: [examinationId], references: [id])
+  examItemId    Int         @map("exam_item_id")
+  examItem      ExamItem    @relation(fields: [examItemId], references: [id])
+
+  @@map("examination_items")
+}
+
+// ==================== 缴费系统 ====================
+
+/// 缴费记录
+model Payment {
+  id        Int       @id @default(autoincrement())
+  paymentNo String    @unique @map("payment_no") @db.VarChar(50)
+  type      String    @db.VarChar(20) // appointment/prescription/examination
+  amount    Decimal   @db.Decimal(10, 2)
+  payMethod String?   @map("pay_method") @db.VarChar(20) // balance/wechat/alipay
+  status    Int       @default(0) // 0:待支付 1:已支付 2:已退款
+  paidAt    DateTime? @map("paid_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // 关联
+  patientId      Int           @map("patient_id")
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  prescriptionId Int?          @map("prescription_id")
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id])
+  examinationId  Int?          @map("examination_id")
+  examination    Examination?  @relation(fields: [examinationId], references: [id])
+
+  @@map("payments")
+}
+
+/// 充值记录
+model Recharge {
+  id         Int       @id @default(autoincrement())
+  rechargeNo String    @unique @map("recharge_no") @db.VarChar(50)
+  amount     Decimal   @db.Decimal(10, 2)
+  payMethod  String?   @map("pay_method") @db.VarChar(20)
+  status     Int       @default(0) // 0:待支付 1:已完成
+  paidAt     DateTime? @map("paid_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // 关联
+  patientId Int     @map("patient_id")
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  @@map("recharges")
+}
+
+// ==================== 消息系统 ====================
+
+/// 消息/咨询
+model Message {
+  id        Int       @id @default(autoincrement())
+  content   String    @db.Text
+  reply     String?   @db.Text
+  isRead    Boolean   @default(false) @map("is_read")
+  repliedAt DateTime? @map("replied_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // 关联
+  patientId Int     @map("patient_id")
+  patient   Patient @relation(fields: [patientId], references: [id])
+  adminId   Int?    @map("admin_id")
+
+  @@map("messages")
+}
+
+// ==================== 内容管理 ====================
+
+/// 新闻公告
+model News {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(200)
+  summary     String?  @db.VarChar(500)
+  content     String   @db.Text
+  image       String?  @db.VarChar(255)
+  viewCount   Int      @default(0) @map("view_count")
+  isTop       Boolean  @default(false) @map("is_top") // 是否置顶
+  status      Int      @default(1)
+  publishedAt DateTime @default(now()) @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("news")
+}
+
+/// 导航服务
+model Navigation {
+  id          Int      @id @default(autoincrement())
+  startPoint  String   @map("start_point") @db.VarChar(200)
+  endPoint    String   @map("end_point") @db.VarChar(200)
+  transport   String   @db.VarChar(50) // 交通方式
+  duration    String?  @db.VarChar(50)
+  mapImage    String?  @map("map_image") @db.VarChar(255)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("navigations")
+}
+
+/// 系统配置
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(100)
+  value     String   @db.Text
+  remark    String?  @db.VarChar(200)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
+}
+
+/// 页面内容（关于我们/系统介绍）
+model PageContent {
+  id        Int      @id @default(autoincrement())
+  type      String   @unique @db.VarChar(50) // about/intro
+  title     String   @db.VarChar(200)
+  subtitle  String?  @db.VarChar(200)
+  content   String   @db.Text
+  images    String?  @db.Text // JSON数组
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("page_contents")
+}
+
+/// 智能导诊记录
+model DiagnosisGuide {
+  id            Int      @id @default(autoincrement())
+  guideNo       String   @unique @map("guide_no") @db.VarChar(50)
+  symptoms      String   @db.Text // 症状描述
+  suggestedDept String?  @map("suggested_dept") @db.VarChar(100) // 推荐科室
+  suggestedDoc  String?  @map("suggested_doc") @db.VarChar(100) // 推荐医生
+  aiResponse    String?  @map("ai_response") @db.Text // AI响应
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // 关联（可选，游客也可使用）
+  patientId Int?     @map("patient_id")
+  patient   Patient? @relation(fields: [patientId], references: [id])
+
+  @@map("diagnosis_guides")
+}
