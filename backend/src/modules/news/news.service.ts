@@ -38,7 +38,7 @@ export class NewsService {
         skip,
         take: pageSize,
         orderBy: [
-          { sort: 'asc' },
+          { isTop: 'desc' },
           { createdAt: 'desc' },
         ],
       }),
@@ -66,7 +66,7 @@ export class NewsService {
         skip,
         take: pageSize,
         orderBy: [
-          { sort: 'asc' },
+          { isTop: 'desc' },
           { createdAt: 'desc' },
         ],
       }),
@@ -91,7 +91,7 @@ export class NewsService {
       where,
       take: limit,
       orderBy: [
-        { sort: 'asc' },
+        { isTop: 'desc' },
         { createdAt: 'desc' },
       ],
     });
@@ -134,7 +134,7 @@ export class NewsService {
     const updatedNews = await this.prisma.news.update({
       where: { id },
       data: {
-        views: {
+        viewCount: {
           increment: 1,
         },
       },

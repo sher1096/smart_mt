@@ -3,7 +3,7 @@ import request from '@/utils/request'
 // 医生列表
 export const getDoctorList = (params?: any) => {
   return request({
-    url: '/doctor/list',
+    url: '/doctors',
     method: 'get',
     params
   })
@@ -12,7 +12,7 @@ export const getDoctorList = (params?: any) => {
 // 医生详情
 export const getDoctorDetail = (id: number) => {
   return request({
-    url: `/doctor/${id}`,
+    url: `/doctors/${id}`,
     method: 'get'
   })
 }
@@ -20,17 +20,17 @@ export const getDoctorDetail = (id: number) => {
 // 获取医生排班
 export const getDoctorSchedule = (doctorId: number, params?: { date?: string }) => {
   return request({
-    url: `/doctor/${doctorId}/schedule`,
+    url: '/schedules/available',
     method: 'get',
-    params
+    params: { doctorId, ...params }
   })
 }
 
-// 获取推荐医生
+// 获取推荐医生（使用医生列表接口，按status排序）
 export const getRecommendedDoctors = (limit?: number) => {
   return request({
-    url: '/doctor/recommended',
+    url: '/doctors',
     method: 'get',
-    params: { limit }
+    params: { limit: limit || 4, page: 1 }
   })
 }

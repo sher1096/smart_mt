@@ -3,7 +3,7 @@ import request from '@/utils/request'
 // 科室列表
 export const getDepartmentList = (params?: any) => {
   return request({
-    url: '/department/list',
+    url: '/departments',
     method: 'get',
     params
   })
@@ -12,7 +12,7 @@ export const getDepartmentList = (params?: any) => {
 // 科室详情
 export const getDepartmentDetail = (id: number) => {
   return request({
-    url: `/department/${id}`,
+    url: `/departments/${id}`,
     method: 'get'
   })
 }
@@ -20,7 +20,7 @@ export const getDepartmentDetail = (id: number) => {
 // 获取科室分类
 export const getDepartmentCategories = () => {
   return request({
-    url: '/department/categories',
+    url: '/departments/categories',
     method: 'get'
   })
 }
@@ -28,7 +28,7 @@ export const getDepartmentCategories = () => {
 // 根据科室获取医生
 export const getDoctorsByDepartment = (departmentId: number, params?: any) => {
   return request({
-    url: `/department/${departmentId}/doctors`,
+    url: `/doctors/department/${departmentId}`,
     method: 'get',
     params
   })

@@ -10,7 +10,7 @@ import request from '@/utils/request'
 // 病历相关
 export const getMedicalRecords = (params?: any) => {
   return request({
-    url: '/medical-record/my',
+    url: '/medical-records/patient/my',
     method: 'get',
     params
   })
@@ -18,7 +18,7 @@ export const getMedicalRecords = (params?: any) => {
 
 export const getMedicalRecordDetail = (id: number) => {
   return request({
-    url: `/medical-record/${id}`,
+    url: `/medical-records/${id}`,
     method: 'get'
   })
 }
@@ -26,7 +26,7 @@ export const getMedicalRecordDetail = (id: number) => {
 // 处方相关
 export const getPrescriptions = (params?: any) => {
   return request({
-    url: '/prescription/my',
+    url: '/prescriptions/patient',
     method: 'get',
     params
   })
@@ -34,7 +34,7 @@ export const getPrescriptions = (params?: any) => {
 
 export const getPrescriptionDetail = (id: number) => {
   return request({
-    url: `/prescription/${id}`,
+    url: `/prescriptions/${id}`,
     method: 'get'
   })
 }
@@ -42,7 +42,7 @@ export const getPrescriptionDetail = (id: number) => {
 // 体检相关
 export const getExaminations = (params?: any) => {
   return request({
-    url: '/examination/my',
+    url: '/examinations/my',
     method: 'get',
     params
   })
@@ -50,7 +50,7 @@ export const getExaminations = (params?: any) => {
 
 export const getExaminationDetail = (id: number) => {
   return request({
-    url: `/examination/${id}`,
+    url: `/examinations/${id}`,
     method: 'get'
   })
 }
@@ -58,7 +58,7 @@ export const getExaminationDetail = (id: number) => {
 // 缴费相关
 export const getPayments = (params?: any) => {
   return request({
-    url: '/payment/my',
+    url: '/payments/my',
     method: 'get',
     params
   })
@@ -66,7 +66,7 @@ export const getPayments = (params?: any) => {
 
 export const createPayment = (data: any) => {
   return request({
-    url: '/payment',
+    url: '/payments',
     method: 'post',
     data
   })
@@ -74,7 +74,7 @@ export const createPayment = (data: any) => {
 
 export const getPaymentDetail = (id: number) => {
   return request({
-    url: `/payment/${id}`,
+    url: `/payments/${id}`,
     method: 'get'
   })
 }
@@ -82,22 +82,23 @@ export const getPaymentDetail = (id: number) => {
 // 消息相关
 export const getMessages = (params?: any) => {
   return request({
-    url: '/message/my',
+    url: '/messages/my/list',
     method: 'get',
     params
   })
 }
 
-export const markMessageRead = (id: number) => {
+export const markMessageRead = (ids: number[]) => {
   return request({
-    url: `/message/${id}/read`,
-    method: 'put'
+    url: '/messages/my/mark-read',
+    method: 'patch',
+    data: { ids }
   })
 }
 
 export const getUnreadCount = () => {
   return request({
-    url: '/message/unread-count',
+    url: '/messages/my/unread-count',
     method: 'get'
   })
 }
@@ -105,9 +106,17 @@ export const getUnreadCount = () => {
 // 新闻资讯
 export const getNewsList = (params?: any) => {
   return request({
-    url: '/news/list',
+    url: '/news',
     method: 'get',
     params
+  })
+}
+
+export const getLatestNews = (limit?: number) => {
+  return request({
+    url: '/news/latest',
+    method: 'get',
+    params: { limit }
   })
 }
 

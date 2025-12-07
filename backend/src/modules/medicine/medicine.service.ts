@@ -120,12 +120,38 @@ export class MedicineService {
     // 检查分类是否存在
     await this.findOneCategory(dto.categoryId);
 
+    // 生成药品编码
+    const code = this.generateMedicineCode();
+
     return this.prisma.medicine.create({
-      data: dto,
+      data: {
+        code,
+        name: dto.name,
+        categoryId: dto.categoryId,
+        specification: dto.specification,
+        manufacturer: dto.manufacturer,
+        unit: dto.unit,
+        price: dto.price,
+        stock: dto.stock ?? 0,
+        description: dto.description,
+        status: dto.status ?? 1,
+      },
       include: {
         category: true,
       },
     });
+  }
+
+  /**
+   * 生成药品编码
+   */
+  private generateMedicineCode(): string {
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const random = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
+    return `YP${dateStr}${random}`;
   }
 
   /**

@@ -36,14 +36,14 @@ export interface UserInfoResponse {
  * 用户登录
  */
 export const login = (data: LoginParams) => {
-  return request.post<LoginResponse>('/auth/login', data)
+  return request.post<LoginResponse>('/auth/login', { ...data, type: 'admin' })
 }
 
 /**
  * 获取用户信息
  */
 export const getUserInfo = () => {
-  return request.get<UserInfoResponse>('/auth/userinfo')
+  return request.post<UserInfoResponse>('/auth/profile')
 }
 
 /**

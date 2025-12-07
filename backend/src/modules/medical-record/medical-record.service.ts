@@ -68,15 +68,14 @@ export class MedicalRecordService {
     // 创建病历
     const medicalRecord = await this.prisma.medicalRecord.create({
       data: {
+        recordNo: this.generateRecordNo(),
         appointmentId: dto.appointmentId,
         patientId: appointment.patientId,
         doctorId: appointment.doctorId,
-        chiefComplaint: dto.chiefComplaint,
+        chiefComplaint: dto.chiefComplaint || '无',
         presentIllness: dto.presentIllness,
-        pastHistory: dto.pastHistory,
-        physicalExam: dto.physicalExam,
-        diagnosis: dto.diagnosis,
-        treatmentPlan: dto.treatmentPlan,
+        diagnosis: dto.diagnosis || '待诊断',
+        suggestion: dto.treatmentPlan,
       },
       include: {
         patient: {
@@ -96,7 +95,19 @@ export class MedicalRecordService {
       },
     });
 
-    return medicalRecord;
+    return medicalRecord as unknown as MedicalRecordWithRelations;
+  }
+
+  /**
+   * 生成病历号
+   */
+  private generateRecordNo(): string {
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const random = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
+    return `BL${dateStr}${random}`;
   }
 
   /**
@@ -124,12 +135,10 @@ export class MedicalRecordService {
     const updatedRecord = await this.prisma.medicalRecord.update({
       where: { id },
       data: {
-        chiefComplaint: dto.chiefComplaint,
-        presentIllness: dto.presentIllness,
-        pastHistory: dto.pastHistory,
-        physicalExam: dto.physicalExam,
-        diagnosis: dto.diagnosis,
-        treatmentPlan: dto.treatmentPlan,
+        ...(dto.chiefComplaint && { chiefComplaint: dto.chiefComplaint }),
+        ...(dto.presentIllness && { presentIllness: dto.presentIllness }),
+        ...(dto.diagnosis && { diagnosis: dto.diagnosis }),
+        ...(dto.treatmentPlan && { suggestion: dto.treatmentPlan }),
       },
       include: {
         patient: {
@@ -149,7 +158,7 @@ export class MedicalRecordService {
       },
     });
 
-    return updatedRecord;
+    return updatedRecord as unknown as MedicalRecordWithRelations;
   }
 
   /**

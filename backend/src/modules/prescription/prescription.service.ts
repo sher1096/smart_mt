@@ -104,10 +104,8 @@ export class PrescriptionService {
               medicineId: item.medicineId,
               quantity: item.quantity,
               dosage: item.dosage,
-              frequency: item.frequency,
-              days: item.days,
-              price: item.price,
-              amount: item.amount,
+              unitPrice: item.price,
+              subtotal: item.amount,
             })),
           },
         },
@@ -136,7 +134,7 @@ export class PrescriptionService {
       return newPrescription;
     });
 
-    return prescription;
+    return prescription as unknown as PrescriptionWithRelations;
   }
 
   /**

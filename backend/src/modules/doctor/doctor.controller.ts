@@ -12,7 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { DoctorService } from './doctor.service';
 import { CreateDoctorDto, UpdateDoctorDto, QueryDoctorDto } from './dto';
-import { Roles, UserType, CurrentUser, JwtPayload } from '../../common/decorators';
+import { Roles, UserType, CurrentUser, JwtPayload, Public } from '../../common/decorators';
 
 @ApiTags('医生')
 @ApiBearerAuth('JWT-auth')
@@ -31,8 +31,8 @@ export class DoctorController {
   }
 
   @Get()
-  @Roles(UserType.ADMIN, UserType.DOCTOR, UserType.PATIENT)
-  @ApiOperation({ summary: '分页查询医生列表' })
+  @Public()
+  @ApiOperation({ summary: '分页查询医生列表（公开）' })
   @ApiResponse({ status: 200, description: '查询成功' })
   findAll(@Query() query: QueryDoctorDto) {
     return this.doctorService.findAll(query);
@@ -57,16 +57,16 @@ export class DoctorController {
   }
 
   @Get('department/:departmentId')
-  @Roles(UserType.ADMIN, UserType.DOCTOR, UserType.PATIENT)
-  @ApiOperation({ summary: '根据科室ID查询医生列表' })
+  @Public()
+  @ApiOperation({ summary: '根据科室ID查询医生列表（公开）' })
   @ApiResponse({ status: 200, description: '查询成功' })
   findByDepartment(@Param('departmentId', ParseIntPipe) departmentId: number) {
     return this.doctorService.findByDepartment(departmentId);
   }
 
   @Get(':id')
-  @Roles(UserType.ADMIN, UserType.DOCTOR, UserType.PATIENT)
-  @ApiOperation({ summary: '根据ID查询医生详情' })
+  @Public()
+  @ApiOperation({ summary: '根据ID查询医生详情（公开）' })
   @ApiResponse({ status: 200, description: '查询成功' })
   @ApiResponse({ status: 404, description: '医生不存在' })
   findOne(@Param('id', ParseIntPipe) id: number) {

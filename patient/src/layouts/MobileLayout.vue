@@ -71,9 +71,13 @@ const unreadCount = ref(0)
 const loadUnreadCount = async () => {
   try {
     const res = await getUnreadCount()
-    unreadCount.value = res.data || 0
+    // 后端返回格式: { count: number }
+    unreadCount.value = res?.count || res?.data?.count || 0
   } catch (error) {
-    console.error('获取未读消息数失败', error)
+    // 未登录时忽略错误
+    if (error?.response?.status !== 401) {
+      console.error('获取未读消息数失败', error)
+    }
   }
 }
 

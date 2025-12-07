@@ -120,7 +120,7 @@ export class FileController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (req, file, callback) => {
-          const fileService = new FileService(req['configService']);
+          const fileService = new FileService((req as any).configService);
           const datePath = fileService.getDateBasedPath();
           fileService.ensureDateDirExists(datePath);
           callback(null, fileService.getFilePath(datePath));
@@ -128,7 +128,7 @@ export class FileController {
         filename: (req, file, callback) => {
           const ext = extname(file.originalname);
           const filename = `${uuidv4()}${ext}`;
-          const fileService = new FileService(req['configService']);
+          const fileService = new FileService((req as any).configService);
           const datePath = fileService.getDateBasedPath();
           const fullFilename = `${datePath}/${filename}`;
           callback(null, fullFilename);
@@ -209,7 +209,7 @@ export class FileController {
     FilesInterceptor('files', 10, {
       storage: diskStorage({
         destination: (req, file, callback) => {
-          const fileService = new FileService(req['configService']);
+          const fileService = new FileService((req as any).configService);
           const datePath = fileService.getDateBasedPath();
           fileService.ensureDateDirExists(datePath);
           callback(null, fileService.getFilePath(datePath));
@@ -217,7 +217,7 @@ export class FileController {
         filename: (req, file, callback) => {
           const ext = extname(file.originalname);
           const filename = `${uuidv4()}${ext}`;
-          const fileService = new FileService(req['configService']);
+          const fileService = new FileService((req as any).configService);
           const datePath = fileService.getDateBasedPath();
           const fullFilename = `${datePath}/${filename}`;
           callback(null, fullFilename);

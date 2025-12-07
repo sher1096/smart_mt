@@ -21,7 +21,7 @@ type ExaminationWithRelations = Examination & {
   patient: { id: number; name: string; phone: string | null; medicalCardNo: string | null };
   doctor: { id: number; name: string; title: string | null } | null;
   items: (ExaminationItem & {
-    examItem: { id: number; name: string; price: Prisma.Decimal; unit: string | null };
+    examItem: { id: number; name: string; price: Prisma.Decimal; description?: string | null };
   })[];
 };
 
@@ -51,8 +51,6 @@ export class ExaminationService {
         name: dto.name,
         price: dto.price,
         description: dto.description,
-        normalRange: dto.normalRange,
-        unit: dto.unit,
         status: dto.status ?? 1,
       },
     });
@@ -85,8 +83,6 @@ export class ExaminationService {
         ...(dto.name && { name: dto.name }),
         ...(dto.price !== undefined && { price: dto.price }),
         ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.normalRange !== undefined && { normalRange: dto.normalRange }),
-        ...(dto.unit !== undefined && { unit: dto.unit }),
         ...(dto.status !== undefined && { status: dto.status }),
       },
     });
@@ -209,6 +205,7 @@ export class ExaminationService {
       const exam = await tx.examination.create({
         data: {
           examNo,
+          examDate: new Date(),
           patientId: dto.patientId,
           doctorId: dto.doctorId || currentUserId,
           totalAmount,
@@ -238,13 +235,17 @@ export class ExaminationService {
           items: {
             include: {
               examItem: {
-                select: { id: true, name: true, price: true, unit: true },
+                select: { id: true, name: true, price: true, description: true },
               },
             },
           },
         },
       });
     });
+
+    if (!examination) {
+      throw new NotFoundException('体检单创建失败');
+    }
 
     return examination;
   }
@@ -277,11 +278,11 @@ export class ExaminationService {
       }
     }
 
-    return this.prisma.examination.update({
+    const updated = await this.prisma.examination.update({
       where: { id },
       data: {
         status: dto.status,
-        ...(dto.status === 3 && { examDate: new Date() }),
+        ...(dto.status === 3 && { reportTime: new Date() }),
       },
       include: {
         patient: {
@@ -293,12 +294,14 @@ export class ExaminationService {
         items: {
           include: {
             examItem: {
-              select: { id: true, name: true, price: true, unit: true },
+              select: { id: true, name: true, price: true, description: true },
             },
           },
         },
       },
     });
+
+    return updated;
   }
 
   /**
@@ -334,8 +337,8 @@ export class ExaminationService {
       where: { id: itemId },
       data: {
         ...(dto.result !== undefined && { result: dto.result }),
-        ...(dto.conclusion !== undefined && { conclusion: dto.conclusion }),
         ...(dto.status !== undefined && { status: dto.status }),
+        ...(dto.status === 1 && { checkedAt: new Date() }),
       },
     });
 
@@ -398,7 +401,7 @@ export class ExaminationService {
           items: {
             include: {
               examItem: {
-                select: { id: true, name: true, price: true, unit: true },
+                select: { id: true, name: true, price: true, description: true },
               },
             },
           },
@@ -407,7 +410,7 @@ export class ExaminationService {
       this.prisma.examination.count({ where }),
     ]);
 
-    return createPaginatedResponse(list, total, page, pageSize);
+    return createPaginatedResponse(list as unknown as ExaminationWithRelations[], total, page, pageSize);
   }
 
   /**
@@ -440,8 +443,6 @@ export class ExaminationService {
                 id: true,
                 name: true,
                 price: true,
-                unit: true,
-                normalRange: true,
                 description: true,
               },
             },
@@ -454,7 +455,7 @@ export class ExaminationService {
       throw new NotFoundException('体检单不存在');
     }
 
-    return examination;
+    return examination as unknown as ExaminationWithRelations;
   }
 
   /**
@@ -473,7 +474,7 @@ export class ExaminationService {
       throw new BadRequestException('只能取消待缴费或已缴费待检的体检单');
     }
 
-    return this.prisma.examination.update({
+    const cancelled = await this.prisma.examination.update({
       where: { id },
       data: { status: 4 }, // 已取消
       include: {
@@ -486,12 +487,14 @@ export class ExaminationService {
         items: {
           include: {
             examItem: {
-              select: { id: true, name: true, price: true, unit: true },
+              select: { id: true, name: true, price: true, description: true },
             },
           },
         },
       },
     });
+
+    return cancelled as unknown as ExaminationWithRelations;
   }
 
   /**

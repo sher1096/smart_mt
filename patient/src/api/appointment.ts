@@ -15,7 +15,7 @@ export interface AppointmentParams {
 // 创建预约
 export const createAppointment = (data: AppointmentParams) => {
   return request({
-    url: '/appointment',
+    url: '/appointments',
     method: 'post',
     data
   })
@@ -24,7 +24,7 @@ export const createAppointment = (data: AppointmentParams) => {
 // 我的预约列表
 export const getMyAppointments = (params?: { status?: string; page?: number; limit?: number }) => {
   return request({
-    url: '/appointment/my',
+    url: '/appointments/my',
     method: 'get',
     params
   })
@@ -33,7 +33,7 @@ export const getMyAppointments = (params?: { status?: string; page?: number; lim
 // 预约详情
 export const getAppointmentDetail = (id: number) => {
   return request({
-    url: `/appointment/${id}`,
+    url: `/appointments/${id}`,
     method: 'get'
   })
 }
@@ -41,8 +41,8 @@ export const getAppointmentDetail = (id: number) => {
 // 取消预约
 export const cancelAppointment = (id: number, reason?: string) => {
   return request({
-    url: `/appointment/${id}/cancel`,
-    method: 'put',
+    url: `/appointments/${id}/cancel`,
+    method: 'post',
     data: { reason }
   })
 }
@@ -50,7 +50,7 @@ export const cancelAppointment = (id: number, reason?: string) => {
 // 获取可预约时间段
 export const getAvailableTimeSlots = (doctorId: number, date: string) => {
   return request({
-    url: '/appointment/available-slots',
+    url: '/schedules/available',
     method: 'get',
     params: { doctorId, date }
   })

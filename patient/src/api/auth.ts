@@ -18,16 +18,16 @@ export interface RegisterParams {
 // 登录
 export const login = (data: LoginParams) => {
   return request({
-    url: '/patient/login',
+    url: '/auth/login',
     method: 'post',
-    data
+    data: { ...data, type: 'patient' }
   })
 }
 
 // 注册
 export const register = (data: RegisterParams) => {
   return request({
-    url: '/patient/register',
+    url: '/auth/register',
     method: 'post',
     data
   })
@@ -36,7 +36,7 @@ export const register = (data: RegisterParams) => {
 // 获取用户信息
 export const getUserInfo = () => {
   return request({
-    url: '/patient/info',
+    url: '/patients/profile',
     method: 'get'
   })
 }
@@ -44,8 +44,8 @@ export const getUserInfo = () => {
 // 更新用户信息
 export const updateUserInfo = (data: any) => {
   return request({
-    url: '/patient/info',
-    method: 'put',
+    url: '/patients/profile',
+    method: 'patch',
     data
   })
 }
@@ -53,8 +53,8 @@ export const updateUserInfo = (data: any) => {
 // 修改密码
 export const changePassword = (data: { oldPassword: string; newPassword: string }) => {
   return request({
-    url: '/patient/password',
-    method: 'put',
+    url: '/auth/change-password',
+    method: 'post',
     data
   })
 }

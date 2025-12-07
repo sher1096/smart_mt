@@ -47,15 +47,18 @@ export class PaymentService {
     // 生成缴费单号
     const paymentNo = this.generatePaymentNo();
 
+    // 根据类型设置关联ID
+    const typeStr = dto.type === 1 ? 'appointment' : dto.type === 2 ? 'prescription' : 'examination';
+
     // 创建缴费单
     const payment = await this.prisma.payment.create({
       data: {
         paymentNo,
         patientId,
-        type: dto.type,
-        refId: dto.refId,
+        type: typeStr,
         amount: dto.amount,
-        payMethod: 0, // 初始支付方式为0
+        ...(dto.type === 2 && { prescriptionId: dto.refId }),
+        ...(dto.type === 3 && { examinationId: dto.refId }),
         status: 0, // 待支付
       },
       include: {
@@ -131,7 +134,7 @@ export class PaymentService {
         where: { id: payment.id },
         data: {
           status: 1,
-          payMethod,
+          payMethod: String(payMethod),
           paidAt: new Date(),
         },
         include: {
@@ -157,7 +160,10 @@ export class PaymentService {
     }
 
     // 根据缴费类型更新关联记录状态
-    operations.push(this.updateRefRecordStatus(payment.type, payment.refId));
+    const refId = payment.prescriptionId || payment.examinationId;
+    if (refId) {
+      operations.push(this.updateRefRecordStatus(payment.type, refId));
+    }
 
     const [updatedPayment] = await this.prisma.$transaction(operations);
     return updatedPayment;
@@ -211,9 +217,14 @@ export class PaymentService {
     } = query;
     const skip = (page - 1) * pageSize;
 
+    // 将 number 类型的 type 转换为 string
+    const typeStr = type !== undefined
+      ? (type === 1 ? 'appointment' : type === 2 ? 'prescription' : 'examination')
+      : undefined;
+
     const where: Prisma.PaymentWhereInput = {
       ...(patientId && { patientId }),
-      ...(type !== undefined && { type }),
+      ...(typeStr && { type: typeStr }),
       ...(status !== undefined && { status }),
       ...(startDate &&
         endDate && {
@@ -294,7 +305,6 @@ export class PaymentService {
         rechargeNo,
         patientId,
         amount: dto.amount,
-        payMethod: 0, // 初始支付方式为0
         status: 0, // 待确认
       },
       include: {
@@ -330,7 +340,8 @@ export class PaymentService {
         where: { id: dto.rechargeId },
         data: {
           status: 1,
-          payMethod: dto.payMethod,
+          payMethod: String(dto.payMethod),
+          paidAt: new Date(),
         },
         include: {
           patient: {
@@ -500,24 +511,24 @@ export class PaymentService {
   /**
    * 更新关联记录的支付状态
    */
-  private updateRefRecordStatus(type: number, refId: number): any {
+  private updateRefRecordStatus(type: string, refId: number): any {
     switch (type) {
-      case 1: // 挂号费 - 更新挂号记录的 isPaid 字段
+      case 'appointment': // 挂号费 - 更新挂号记录的状态
         return this.prisma.appointment.update({
           where: { id: refId },
-          data: { isPaid: 1 },
+          data: { status: 0 }, // 保持待就诊状态
         });
 
-      case 2: // 处方费 - 更新处方记录的 isPaid 字段
+      case 'prescription': // 处方费 - 更新处方记录的状态
         return this.prisma.prescription.update({
           where: { id: refId },
-          data: { isPaid: 1 },
+          data: { status: 1 }, // 已缴费
         });
 
-      case 3: // 体检费 - 更新体检记录的 isPaid 字段
+      case 'examination': // 体检费 - 更新体检记录的状态
         return this.prisma.examination.update({
           where: { id: refId },
-          data: { isPaid: 1 },
+          data: { status: 1 }, // 已缴费待检
         });
 
       default:

@@ -29,9 +29,8 @@ export class MessageService {
     return this.prisma.message.create({
       data: {
         patientId: dto.patientId,
-        title: dto.title,
-        content: dto.content,
-        type: dto.type || 0,
+        content: `${dto.title}\n\n${dto.content}`,
+        isRead: false,
       },
     });
   }
@@ -71,9 +70,8 @@ export class MessageService {
         this.prisma.message.create({
           data: {
             patientId,
-            title: dto.title,
-            content: dto.content,
-            type: dto.type || 0,
+            content: `${dto.title}\n\n${dto.content}`,
+            isRead: false,
           },
         }),
       ),
@@ -97,8 +95,7 @@ export class MessageService {
 
     const where: Prisma.MessageWhereInput = {
       patientId,
-      ...(type !== undefined && { type }),
-      ...(isRead !== undefined && { isRead }),
+      ...(isRead !== undefined && { isRead: isRead === 1 }),
     };
 
     const [list, total] = await Promise.all([
@@ -121,7 +118,7 @@ export class MessageService {
     const count = await this.prisma.message.count({
       where: {
         patientId,
-        isRead: 0,
+        isRead: false,
       },
     });
 
@@ -153,7 +150,7 @@ export class MessageService {
         patientId,
       },
       data: {
-        isRead: 1,
+        isRead: true,
       },
     });
 
@@ -167,10 +164,10 @@ export class MessageService {
     const result = await this.prisma.message.updateMany({
       where: {
         patientId,
-        isRead: 0,
+        isRead: false,
       },
       data: {
-        isRead: 1,
+        isRead: true,
       },
     });
 
@@ -231,12 +228,11 @@ export class MessageService {
    * 管理员查看所有消息（分页）
    */
   async findAll(query: QueryMessageDto): Promise<PaginatedResponseDto<Message>> {
-    const { page = 1, pageSize = 10, type, isRead } = query;
+    const { page = 1, pageSize = 10, isRead } = query;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.MessageWhereInput = {
-      ...(type !== undefined && { type }),
-      ...(isRead !== undefined && { isRead }),
+      ...(isRead !== undefined && { isRead: isRead === 1 }),
     };
 
     const [list, total] = await Promise.all([

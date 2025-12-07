@@ -97,11 +97,28 @@ const handleLogin = async () => {
     loading.value = true
     const res = await login(formData.value)
 
-    if (res.code === 200 || res.code === 0) {
+    // 后端直接返回数据（经过响应拦截器处理）
+    // 返回格式: { accessToken, refreshToken, expiresIn, user: { id, username, name, type } }
+    if (res.accessToken) {
       message.success('登录成功')
-      userStore.login(res.data.token, res.data.userInfo)
+      const userInfo = {
+        id: res.user.id,
+        username: res.user.username,
+        name: res.user.name || res.user.username,
+        phone: '',
+      }
+      userStore.login(res.accessToken, userInfo)
 
       // 跳转到原页面或首页
+      const redirect = (route.query.redirect as string) || '/home'
+      router.replace(redirect)
+    } else if (res.code === 200 || res.code === 0) {
+      // 兼容旧格式
+      message.success('登录成功')
+      const token = res.data?.accessToken || res.data?.token
+      const userInfo = res.data?.user || res.data?.userInfo
+      userStore.login(token, userInfo)
+
       const redirect = (route.query.redirect as string) || '/home'
       router.replace(redirect)
     } else {

@@ -23,7 +23,12 @@ export class SystemService {
    */
   async createNavigation(dto: CreateNavigationDto): Promise<Navigation> {
     return this.prisma.navigation.create({
-      data: dto,
+      data: {
+        startPoint: dto.name || '',
+        endPoint: dto.path || '',
+        transport: dto.icon || 'walk',
+        description: dto.name,
+      },
     });
   }
 
@@ -32,7 +37,7 @@ export class SystemService {
    */
   async findAllNavigations(): Promise<Navigation[]> {
     return this.prisma.navigation.findMany({
-      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+      orderBy: { id: 'asc' },
     });
   }
 
@@ -41,8 +46,7 @@ export class SystemService {
    */
   async findPublicNavigations(): Promise<Navigation[]> {
     return this.prisma.navigation.findMany({
-      where: { status: 1 },
-      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+      orderBy: { id: 'asc' },
     });
   }
 
@@ -180,17 +184,21 @@ export class SystemService {
    * 创建页面内容
    */
   async createPageContent(dto: CreatePageContentDto): Promise<PageContent> {
-    // 检查页面代码是否已存在
+    // 检查页面类型是否已存在
     const existing = await this.prisma.pageContent.findUnique({
-      where: { code: dto.code },
+      where: { type: dto.code },
     });
 
     if (existing) {
-      throw new ConflictException('页面代码已存在');
+      throw new ConflictException('页面类型已存在');
     }
 
     return this.prisma.pageContent.create({
-      data: dto,
+      data: {
+        type: dto.code,
+        title: dto.title,
+        content: dto.content,
+      },
     });
   }
 
@@ -208,7 +216,7 @@ export class SystemService {
    */
   async findPageContentByCode(code: string): Promise<PageContent> {
     const content = await this.prisma.pageContent.findUnique({
-      where: { code },
+      where: { type: code },
     });
 
     if (!content) {
@@ -259,9 +267,27 @@ export class SystemService {
    * 创建诊前须知
    */
   async createDiagnosisGuide(dto: CreateDiagnosisGuideDto): Promise<DiagnosisGuide> {
+    // 生成导诊编号
+    const guideNo = this.generateGuideNo();
+
     return this.prisma.diagnosisGuide.create({
-      data: dto,
+      data: {
+        guideNo,
+        symptoms: `${dto.title}\n\n${dto.content}`,
+      },
     });
+  }
+
+  /**
+   * 生成导诊编号
+   */
+  private generateGuideNo(): string {
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const random = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
+    return `DZ${dateStr}${random}`;
   }
 
   /**
@@ -269,7 +295,7 @@ export class SystemService {
    */
   async findAllDiagnosisGuides(): Promise<DiagnosisGuide[]> {
     return this.prisma.diagnosisGuide.findMany({
-      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+      orderBy: { id: 'asc' },
     });
   }
 
@@ -278,8 +304,7 @@ export class SystemService {
    */
   async findPublicDiagnosisGuides(): Promise<DiagnosisGuide[]> {
     return this.prisma.diagnosisGuide.findMany({
-      where: { status: 1 },
-      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+      orderBy: { id: 'asc' },
     });
   }
 
@@ -306,7 +331,10 @@ export class SystemService {
 
     return this.prisma.diagnosisGuide.update({
       where: { id },
-      data: dto,
+      data: {
+        ...(dto.title && dto.content && { symptoms: `${dto.title}\n\n${dto.content}` }),
+        ...(dto.title && !dto.content && { symptoms: dto.title }),
+      },
     });
   }
 
