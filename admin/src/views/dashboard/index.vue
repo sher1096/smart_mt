@@ -1214,38 +1214,204 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .dashboard {
+    padding-bottom: 20px;
+  }
+
   .welcome-section {
     flex-direction: column;
     align-items: flex-start;
-    gap: 24px;
-    padding: 24px;
+    gap: 20px;
+    padding: 20px;
+    min-height: auto;
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+
+  .welcome-bg .welcome-circle {
+    opacity: 0.5;
   }
 
   .welcome-stats {
     width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
+    padding: 16px 20px;
+    gap: 24px;
+  }
+
+  .welcome-stat-divider {
+    height: 36px;
+  }
+
+  .welcome-stat-value {
+    font-size: 24px;
   }
 
   .welcome-title {
     font-size: 22px;
   }
 
+  .welcome-date {
+    font-size: 12px;
+  }
+
   .quick-actions {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .action-item {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .action-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  .action-title {
+    font-size: 14px;
+  }
+
+  .action-desc {
+    display: none;
+  }
+
+  .action-arrow {
+    display: none;
   }
 
   .overview-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .overview-item {
+    padding: 14px;
+  }
+
+  .overview-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .overview-value {
+    font-size: 22px;
+  }
+
+  .stat-card {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .stat-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
   }
 
   .stat-value {
     font-size: 26px;
   }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .stat-footer {
+    padding-top: 10px;
+  }
+
+  .stat-trend {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+
+  .ranking-item {
+    padding: 12px 14px;
+  }
+
+  .rank-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .rank-name {
+    font-size: 13px;
+  }
+
+  .rank-count {
+    font-size: 12px;
+  }
+
+  /* 卡片内边距 */
+  .glass-card :deep(.n-card__content) {
+    padding: 16px !important;
+  }
+
+  .glass-card :deep(.n-card-header) {
+    padding: 14px 16px !important;
+  }
+
+  .card-title {
+    font-size: 14px;
+    gap: 10px;
+  }
+
+  .title-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  /* 表格移动端 */
+  .table-card :deep(.n-data-table-th),
+  .table-card :deep(.n-data-table-td) {
+    padding: 10px 8px !important;
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 480px) {
+  .welcome-section {
+    padding: 16px;
+  }
+
+  .welcome-title {
+    font-size: 20px;
+  }
+
+  .welcome-stats {
+    padding: 14px 16px;
+    gap: 16px;
+  }
+
+  .welcome-stat-value {
+    font-size: 20px;
+  }
+
   .quick-actions {
     grid-template-columns: 1fr;
+  }
+
+  .action-item {
+    padding: 12px 14px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .overview-value {
+    font-size: 20px;
   }
 }
 </style>

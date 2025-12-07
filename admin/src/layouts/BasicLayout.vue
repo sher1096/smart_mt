@@ -523,13 +523,18 @@ onUnmounted(() => {
 .content-area {
   padding: 0;
   background: #f5f7fa;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   height: calc(100vh - 64px);
+  -webkit-overflow-scrolling: touch; /* iOS 流畅滚动 */
+  scroll-behavior: smooth;
 }
 
 .page-wrapper {
   padding: 24px;
   min-height: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* 页面过渡动画 */
@@ -560,13 +565,24 @@ onUnmounted(() => {
 }
 
 /* 响应式 */
+@media (max-width: 1024px) {
+  .page-wrapper {
+    padding: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .header {
-    padding: 0 16px;
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .content-area {
+    height: calc(100vh - 56px);
   }
 
   .page-wrapper {
-    padding: 16px;
+    padding: 12px;
   }
 
   .user-detail {
@@ -576,6 +592,20 @@ onUnmounted(() => {
   .user-info {
     padding: 6px;
     border-radius: 50%;
+  }
+
+  .header-left :deep(.n-breadcrumb) {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-wrapper {
+    padding: 10px;
+  }
+
+  .header {
+    padding: 0 10px;
   }
 }
 </style>

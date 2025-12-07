@@ -516,4 +516,20 @@ onMounted(() => {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .detail-user {
+    gap: 8px;
+  }
+
+  .detail-user :deep(.n-avatar) {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .detail-user span {
+    font-size: 14px;
+  }
+}
 </style>

@@ -126,6 +126,13 @@ html, body, #app {
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* 移动端触摸优化 */
+html {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* 页面过渡动画 */
@@ -250,5 +257,67 @@ html, body, #app {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+/* 移动端全局适配 */
+@media (max-width: 768px) {
+  .n-card {
+    border-radius: 12px !important;
+  }
+
+  .n-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transform: none;
+  }
+
+  .n-button--primary-type:not(:disabled):hover {
+    transform: none;
+  }
+
+  .n-data-table-wrapper {
+    border-radius: 0;
+  }
+
+  .n-form-item {
+    margin-bottom: 18px;
+  }
+
+  /* 弹窗移动端 */
+  .n-modal-body-wrapper {
+    padding: 12px !important;
+  }
+
+  .n-modal {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* 下拉菜单移动端 */
+  .n-dropdown-menu {
+    max-width: calc(100vw - 24px);
+  }
+
+  /* 消息提示移动端 */
+  .n-message {
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 480px) {
+  .n-card {
+    border-radius: 10px !important;
+  }
+
+  .n-form-item {
+    margin-bottom: 14px;
+  }
+
+  .n-input {
+    font-size: 16px !important; /* 防止iOS自动缩放 */
+  }
+
+  .n-base-selection {
+    font-size: 16px !important;
+  }
 }
 </style>
