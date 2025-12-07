@@ -3,6 +3,30 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+// 辅助函数：生成随机单号
+function generateNo(prefix: string): string {
+  const date = new Date();
+  const dateStr = date.getFullYear().toString() +
+    (date.getMonth() + 1).toString().padStart(2, '0') +
+    date.getDate().toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+  return `${prefix}${dateStr}${random}`;
+}
+
+// 辅助函数：生成随机日期（过去n天内）
+function randomPastDate(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - Math.floor(Math.random() * days));
+  return date;
+}
+
+// 辅助函数：生成未来日期（未来n天内）
+function randomFutureDate(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + Math.floor(Math.random() * days) + 1);
+  return date;
+}
+
 async function main() {
   console.log('开始初始化数据...');
 
@@ -215,29 +239,367 @@ async function main() {
   }
   console.log('创建新闻:', newsList.length);
 
-  // 12. 创建测试患者
+  // 12. 创建测试患者（扩展为多个）
   const patientPassword = await bcrypt.hash('patient123', 10);
-  const patient = await prisma.patient.upsert({
-    where: { username: 'patient' },
-    update: {},
-    create: {
-      username: 'patient',
-      password: patientPassword,
-      name: '测试患者',
-      gender: 'male',
-      phone: '13800138000',
-      age: 30,
-      status: 1,
-    },
+  const patientsData = [
+    { username: 'patient', name: '张三', gender: 'male', phone: '13800138000', age: 30, idCard: '330102199001011234', medicalCardNo: 'MC202401001' },
+    { username: 'lisi', name: '李四', gender: 'male', phone: '13800138001', age: 45, idCard: '330102197901021235', medicalCardNo: 'MC202401002' },
+    { username: 'wangwu', name: '王五', gender: 'male', phone: '13800138002', age: 28, idCard: '330102199601031236', medicalCardNo: 'MC202401003' },
+    { username: 'zhaoliu', name: '赵六', gender: 'female', phone: '13800138003', age: 35, idCard: '330102198901041237', medicalCardNo: 'MC202401004' },
+    { username: 'sunqi', name: '孙七', gender: 'female', phone: '13800138004', age: 52, idCard: '330102197201051238', medicalCardNo: 'MC202401005' },
+    { username: 'zhouba', name: '周八', gender: 'male', phone: '13800138005', age: 60, idCard: '330102196401061239', medicalCardNo: 'MC202401006' },
+    { username: 'wujiu', name: '吴九', gender: 'female', phone: '13800138006', age: 22, idCard: '330102200201071240', medicalCardNo: 'MC202401007' },
+    { username: 'zhengshi', name: '郑十', gender: 'male', phone: '13800138007', age: 40, idCard: '330102198401081241', medicalCardNo: 'MC202401008' },
+    { username: 'chenxiao', name: '陈小明', gender: 'male', phone: '13800138008', age: 8, idCard: '330102201601091242', medicalCardNo: 'MC202401009' },
+    { username: 'liuxia', name: '刘夏', gender: 'female', phone: '13800138009', age: 33, idCard: '330102199101101243', medicalCardNo: 'MC202401010' },
+  ];
+
+  const createdPatients: { id: number; name: string }[] = [];
+  for (const p of patientsData) {
+    const patient = await prisma.patient.upsert({
+      where: { username: p.username },
+      update: {},
+      create: {
+        ...p,
+        password: patientPassword,
+        balance: Math.floor(Math.random() * 1000),
+        status: 1,
+      },
+    });
+    createdPatients.push({ id: patient.id, name: patient.name });
+  }
+  console.log('创建患者:', createdPatients.length);
+
+  // 13. 获取已创建的医生和科室
+  const allDoctors = await prisma.doctor.findMany();
+  const allDepartments = await prisma.department.findMany();
+
+  // 14. 创建排班数据（今天到未来7天）
+  const timeSlots = ['08:00-12:00', '14:00-17:30'];
+  const fees = [15, 25, 50, 100];
+  const schedulesCreated: { id: number; doctorId: number; date: Date }[] = [];
+
+  for (let dayOffset = 0; dayOffset <= 7; dayOffset++) {
+    const scheduleDate = new Date();
+    scheduleDate.setDate(scheduleDate.getDate() + dayOffset);
+    scheduleDate.setHours(0, 0, 0, 0);
+
+    for (const doctor of allDoctors) {
+      for (const slot of timeSlots) {
+        const existingSchedule = await prisma.schedule.findUnique({
+          where: {
+            doctorId_date_timeSlot: {
+              doctorId: doctor.id,
+              date: scheduleDate,
+              timeSlot: slot,
+            },
+          },
+        });
+
+        if (!existingSchedule) {
+          const schedule = await prisma.schedule.create({
+            data: {
+              doctorId: doctor.id,
+              departmentId: doctor.departmentId,
+              date: scheduleDate,
+              timeSlot: slot,
+              maxPatients: 20,
+              bookedCount: Math.floor(Math.random() * 10),
+              fee: fees[Math.floor(Math.random() * fees.length)],
+              status: 1,
+            },
+          });
+          schedulesCreated.push({ id: schedule.id, doctorId: doctor.id, date: scheduleDate });
+        }
+      }
+    }
+  }
+  console.log('创建排班:', schedulesCreated.length);
+
+  // 15. 创建预约/挂号数据
+  const appointmentStatuses = [0, 1, 2]; // 0:待就诊 1:已就诊 2:已取消
+  const appointmentsCreated: { id: number; patientId: number; doctorId: number; scheduleId: number }[] = [];
+
+  // 获取有效排班
+  const validSchedules = await prisma.schedule.findMany({
+    where: { status: 1 },
+    take: 50,
   });
-  console.log('创建测试患者:', patient.username);
+
+  for (let i = 0; i < 30; i++) {
+    const patient = createdPatients[Math.floor(Math.random() * createdPatients.length)];
+    const schedule = validSchedules[Math.floor(Math.random() * validSchedules.length)];
+    const doctor = allDoctors.find(d => d.id === schedule.doctorId);
+    if (!doctor) continue;
+
+    try {
+      const appointment = await prisma.appointment.create({
+        data: {
+          appointmentNo: generateNo('GH'),
+          patientId: patient.id,
+          doctorId: doctor.id,
+          departmentId: doctor.departmentId,
+          scheduleId: schedule.id,
+          date: schedule.date,
+          timeSlot: schedule.timeSlot,
+          fee: schedule.fee,
+          queueNo: Math.floor(Math.random() * 20) + 1,
+          status: appointmentStatuses[Math.floor(Math.random() * appointmentStatuses.length)],
+        },
+      });
+      appointmentsCreated.push({
+        id: appointment.id,
+        patientId: patient.id,
+        doctorId: doctor.id,
+        scheduleId: schedule.id,
+      });
+    } catch (e) {
+      // 忽略重复预约错误
+    }
+  }
+  console.log('创建预约:', appointmentsCreated.length);
+
+  // 16. 创建病历数据（针对已就诊的预约）
+  const completedAppointments = await prisma.appointment.findMany({
+    where: { status: 1 },
+    take: 15,
+  });
+
+  const diagnosisList = [
+    { chiefComplaint: '头痛、头晕3天', diagnosis: '偏头痛', suggestion: '注意休息，避免劳累' },
+    { chiefComplaint: '咳嗽、发热2天', diagnosis: '上呼吸道感染', suggestion: '多喝水，注意保暖' },
+    { chiefComplaint: '胃痛、反酸1周', diagnosis: '慢性胃炎', suggestion: '规律饮食，忌辛辣' },
+    { chiefComplaint: '胸闷、气短', diagnosis: '心律不齐', suggestion: '避免剧烈运动，定期复查' },
+    { chiefComplaint: '腰痛2个月', diagnosis: '腰椎间盘突出', suggestion: '卧床休息，理疗' },
+    { chiefComplaint: '关节疼痛', diagnosis: '风湿性关节炎', suggestion: '注意保暖，按时服药' },
+    { chiefComplaint: '皮肤瘙痒', diagnosis: '过敏性皮炎', suggestion: '避免接触过敏原' },
+    { chiefComplaint: '失眠多梦', diagnosis: '神经衰弱', suggestion: '调整作息，放松心情' },
+  ];
+
+  const medicalRecordsCreated: { id: number; appointmentId: number }[] = [];
+  for (const apt of completedAppointments) {
+    const existingRecord = await prisma.medicalRecord.findUnique({
+      where: { appointmentId: apt.id },
+    });
+    if (existingRecord) continue;
+
+    const diagnosisInfo = diagnosisList[Math.floor(Math.random() * diagnosisList.length)];
+    try {
+      const record = await prisma.medicalRecord.create({
+        data: {
+          recordNo: generateNo('BL'),
+          patientId: apt.patientId,
+          doctorId: apt.doctorId,
+          appointmentId: apt.id,
+          chiefComplaint: diagnosisInfo.chiefComplaint,
+          presentIllness: `患者${diagnosisInfo.chiefComplaint}，无明显诱因，自行服药无效。`,
+          diagnosis: diagnosisInfo.diagnosis,
+          suggestion: diagnosisInfo.suggestion,
+        },
+      });
+      medicalRecordsCreated.push({ id: record.id, appointmentId: apt.id });
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  console.log('创建病历:', medicalRecordsCreated.length);
+
+  // 17. 创建处方数据
+  const allMedicines = await prisma.medicine.findMany();
+  const prescriptionsCreated: number[] = [];
+
+  for (const record of medicalRecordsCreated) {
+    const medicalRecord = await prisma.medicalRecord.findUnique({
+      where: { id: record.id },
+    });
+    if (!medicalRecord) continue;
+
+    // 随机选择1-3种药品
+    const numMedicines = Math.floor(Math.random() * 3) + 1;
+    const selectedMedicines = allMedicines
+      .sort(() => Math.random() - 0.5)
+      .slice(0, numMedicines);
+
+    let totalAmount = 0;
+    const items = selectedMedicines.map((med) => {
+      const quantity = Math.floor(Math.random() * 3) + 1;
+      const subtotal = Number(med.price) * quantity;
+      totalAmount += subtotal;
+      return {
+        medicineId: med.id,
+        quantity,
+        dosage: '每日3次，每次1粒',
+        unitPrice: med.price,
+        subtotal,
+      };
+    });
+
+    try {
+      const prescription = await prisma.prescription.create({
+        data: {
+          prescriptionNo: generateNo('CF'),
+          patientId: medicalRecord.patientId,
+          doctorId: medicalRecord.doctorId,
+          medicalRecordId: record.id,
+          totalAmount,
+          advice: '按时服药，如有不适请及时就医',
+          status: Math.floor(Math.random() * 3), // 0:待缴费 1:已缴费 2:已取药
+          items: {
+            create: items,
+          },
+        },
+      });
+      prescriptionsCreated.push(prescription.id);
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  console.log('创建处方:', prescriptionsCreated.length);
+
+  // 18. 创建体检预约数据
+  const allExamItems = await prisma.examItem.findMany();
+  const examinationsCreated: number[] = [];
+
+  for (let i = 0; i < 10; i++) {
+    const patient = createdPatients[Math.floor(Math.random() * createdPatients.length)];
+    const numItems = Math.floor(Math.random() * 4) + 2;
+    const selectedExamItems = [...allExamItems].sort(() => Math.random() - 0.5).slice(0, numItems);
+    const totalAmount = selectedExamItems.reduce((sum, item) => sum + Number(item.price), 0);
+
+    try {
+      const examination = await prisma.examination.create({
+        data: {
+          examNo: generateNo('TJ'),
+          patientId: patient.id,
+          examDate: randomFutureDate(14),
+          totalAmount,
+          status: Math.floor(Math.random() * 3),
+          items: {
+            create: selectedExamItems.map((item) => ({
+              examItemId: item.id,
+              status: Math.floor(Math.random() * 2),
+            })),
+          },
+        },
+      });
+      examinationsCreated.push(examination.id);
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  console.log('创建体检预约:', examinationsCreated.length);
+
+  // 19. 创建缴费记录
+  const paymentsCreated: number[] = [];
+  const prescriptions = await prisma.prescription.findMany({ where: { status: { gte: 1 } }, take: 10 });
+
+  for (const prescription of prescriptions) {
+    try {
+      const payment = await prisma.payment.create({
+        data: {
+          paymentNo: generateNo('PAY'),
+          patientId: prescription.patientId,
+          prescriptionId: prescription.id,
+          type: 'prescription',
+          amount: prescription.totalAmount,
+          payMethod: ['balance', 'wechat', 'alipay'][Math.floor(Math.random() * 3)],
+          status: 1,
+          paidAt: randomPastDate(30),
+        },
+      });
+      paymentsCreated.push(payment.id);
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  console.log('创建缴费记录:', paymentsCreated.length);
+
+  // 20. 创建充值记录
+  const rechargesCreated: number[] = [];
+  for (let i = 0; i < 15; i++) {
+    const patient = createdPatients[Math.floor(Math.random() * createdPatients.length)];
+    const amounts = [100, 200, 500, 1000];
+    try {
+      const recharge = await prisma.recharge.create({
+        data: {
+          rechargeNo: generateNo('RC'),
+          patientId: patient.id,
+          amount: amounts[Math.floor(Math.random() * amounts.length)],
+          payMethod: ['wechat', 'alipay'][Math.floor(Math.random() * 2)],
+          status: 1,
+          paidAt: randomPastDate(60),
+        },
+      });
+      rechargesCreated.push(recharge.id);
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  console.log('创建充值记录:', rechargesCreated.length);
+
+  // 21. 创建消息/咨询记录
+  const messageContents = [
+    { content: '请问挂号费可以用医保吗？', reply: '您好，我院支持医保挂号，请携带医保卡前来。' },
+    { content: '体检报告多久可以出？', reply: '一般体检后3-5个工作日可以出结果，您可以在系统中查看。' },
+    { content: '请问周末可以看专家门诊吗？', reply: '周末我院有部分专家出诊，具体请查看排班表。' },
+    { content: '药品可以邮寄吗？', reply: '抱歉，处方药品需要本人凭处方到药房取药。' },
+    { content: '如何办理就诊卡？', reply: '您可以在门诊大厅自助机办理，也可以到人工窗口办理。' },
+  ];
+
+  for (let i = 0; i < 20; i++) {
+    const patient = createdPatients[Math.floor(Math.random() * createdPatients.length)];
+    const msgInfo = messageContents[Math.floor(Math.random() * messageContents.length)];
+    const hasReply = Math.random() > 0.3;
+
+    await prisma.message.create({
+      data: {
+        patientId: patient.id,
+        content: msgInfo.content,
+        reply: hasReply ? msgInfo.reply : null,
+        isRead: hasReply,
+        repliedAt: hasReply ? randomPastDate(7) : null,
+        adminId: hasReply ? 1 : null,
+      },
+    });
+  }
+  console.log('创建消息记录: 20');
+
+  // 22. 创建智能导诊记录
+  const symptomsList = [
+    { symptoms: '头痛、头晕、恶心', suggestedDept: '神经内科', suggestedDoc: '神经内科医生' },
+    { symptoms: '咳嗽、发烧、喉咙痛', suggestedDept: '呼吸内科', suggestedDoc: '王强' },
+    { symptoms: '胃痛、消化不良', suggestedDept: '消化内科', suggestedDoc: '赵雪' },
+    { symptoms: '心慌、胸闷', suggestedDept: '心内科', suggestedDoc: '张明' },
+    { symptoms: '关节疼痛、肿胀', suggestedDept: '骨科', suggestedDoc: '陈刚' },
+    { symptoms: '月经不调', suggestedDept: '妇科', suggestedDoc: '吴芳' },
+    { symptoms: '小儿发烧、咳嗽', suggestedDept: '小儿内科', suggestedDoc: '周丽' },
+  ];
+
+  for (let i = 0; i < 15; i++) {
+    const patient = createdPatients[Math.floor(Math.random() * createdPatients.length)];
+    const symptom = symptomsList[Math.floor(Math.random() * symptomsList.length)];
+
+    await prisma.diagnosisGuide.create({
+      data: {
+        guideNo: generateNo('DG'),
+        patientId: Math.random() > 0.3 ? patient.id : null, // 部分游客使用
+        symptoms: symptom.symptoms,
+        suggestedDept: symptom.suggestedDept,
+        suggestedDoc: symptom.suggestedDoc,
+        aiResponse: `根据您描述的症状"${symptom.symptoms}"，建议您到${symptom.suggestedDept}就诊，推荐医生：${symptom.suggestedDoc}。`,
+      },
+    });
+  }
+  console.log('创建智能导诊记录: 15');
 
   console.log('数据初始化完成！');
+  console.log('========================================');
+  console.log('测试账号信息：');
   console.log('----------------------------------------');
   console.log('管理员账号: admin / admin123');
-  console.log('医生账号: D001 (工号) / doctor123');
-  console.log('患者账号: patient / patient123');
-  console.log('----------------------------------------');
+  console.log('医生账号: D001-D008 (工号) / doctor123');
+  console.log('患者账号: patient, lisi, wangwu 等 / patient123');
+  console.log('========================================');
 }
 
 main()

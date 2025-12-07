@@ -19,6 +19,11 @@ export class CreateNewsDto {
   @IsString()
   title: string;
 
+  @ApiPropertyOptional({ description: '新闻摘要' })
+  @IsOptional()
+  @IsString()
+  summary?: string;
+
   @ApiProperty({ description: '新闻内容', example: '为了保障员工健康...' })
   @IsNotEmpty({ message: '内容不能为空' })
   @IsString()
@@ -27,18 +32,11 @@ export class CreateNewsDto {
   @ApiPropertyOptional({ description: '封面图片URL' })
   @IsOptional()
   @IsString()
-  cover?: string;
+  image?: string;
 
-  @ApiPropertyOptional({
-    description: '新闻类型：0医院公告 1健康资讯 2医院动态',
-    example: 0,
-    enum: [0, 1, 2],
-  })
+  @ApiPropertyOptional({ description: '是否置顶', example: false })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @IsIn([0, 1, 2], { message: '类型只能是0(医院公告)、1(健康资讯)或2(医院动态)' })
-  type?: number = 0;
+  isTop?: boolean;
 
   @ApiPropertyOptional({
     description: '状态：0草稿 1发布',
@@ -50,13 +48,6 @@ export class CreateNewsDto {
   @IsInt()
   @IsIn([0, 1], { message: '状态只能是0(草稿)或1(发布)' })
   status?: number = 1;
-
-  @ApiPropertyOptional({ description: '排序值（越小越靠前）', example: 0 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  sort?: number = 0;
 }
 
 /**
@@ -68,13 +59,6 @@ export class UpdateNewsDto extends PartialType(CreateNewsDto) {}
  * 查询新闻列表 DTO
  */
 export class QueryNewsDto extends PaginationDto {
-  @ApiPropertyOptional({ description: '新闻类型：0医院公告 1健康资讯 2医院动态' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @IsIn([0, 1, 2])
-  type?: number;
-
   @ApiPropertyOptional({ description: '状态：0草稿 1发布' })
   @IsOptional()
   @Type(() => Number)

@@ -23,11 +23,10 @@ export class NewsService {
    * 分页查询新闻列表（管理员 - 可查看所有状态）
    */
   async findAllAdmin(query: QueryNewsDto): Promise<PaginatedResponseDto<News>> {
-    const { page = 1, pageSize = 10, type, status, title } = query;
+    const { page = 1, pageSize = 10, status, title } = query;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.NewsWhereInput = {
-      ...(type !== undefined && { type }),
       ...(status !== undefined && { status }),
       ...(title && { title: { contains: title } }),
     };
@@ -52,12 +51,11 @@ export class NewsService {
    * 分页查询新闻列表（公开 - 仅返回已发布）
    */
   async findAllPublic(query: QueryNewsDto): Promise<PaginatedResponseDto<News>> {
-    const { page = 1, pageSize = 10, type } = query;
+    const { page = 1, pageSize = 10 } = query;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.NewsWhereInput = {
       status: 1, // 仅查询已发布的新闻
-      ...(type !== undefined && { type }),
     };
 
     const [list, total] = await Promise.all([
@@ -79,12 +77,10 @@ export class NewsService {
   /**
    * 获取最新新闻（首页展示）
    * @param limit 数量限制，默认5条
-   * @param type 新闻类型，可选
    */
-  async findLatest(limit: number = 5, type?: number): Promise<News[]> {
+  async findLatest(limit: number = 5): Promise<News[]> {
     const where: Prisma.NewsWhereInput = {
       status: 1, // 仅查询已发布的新闻
-      ...(type !== undefined && { type }),
     };
 
     const newsList = await this.prisma.news.findMany({

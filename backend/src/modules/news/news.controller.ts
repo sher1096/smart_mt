@@ -83,14 +83,13 @@ export class NewsController {
   @Public()
   @ApiOperation({
     summary: '获取最新新闻（首页展示）',
-    description: '默认返回5条最新已发布的新闻，可通过limit参数指定数量，可通过type参数过滤类型'
+    description: '默认返回5条最新已发布的新闻，可通过limit参数指定数量'
   })
   @ApiResponse({ status: 200, description: '查询成功' })
   findLatest(
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-    @Query('type', new ParseIntPipe({ optional: true })) type?: number,
   ) {
-    return this.newsService.findLatest(limit, type);
+    return this.newsService.findLatest(limit);
   }
 
   @Get(':id')
